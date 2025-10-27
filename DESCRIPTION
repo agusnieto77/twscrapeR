@@ -1,0 +1,35 @@
+Package: twscrapeR
+Type: Package
+Title: Twitter/X Scraping via Python's twscrape Library
+Version: 0.1.0
+Date: 2025-10-26
+Authors@R: c(
+    person("Agustin", "Nieto", email = "agustin.nieto77@gmail.com", role = c("aut", "cre")),
+    person("Claude", "AI", role = "ctb", comment = "Package development assistance")
+    )
+Description: A comprehensive R interface to Python's twscrape library for scraping
+    Twitter/X data. This package uses reticulate to provide a seamless R interface to
+    the fully functional Python twscrape library, with automatic Python installation
+    and dependency management. Supports searching tweets, user timelines, followers,
+    and more, with built-in rate limiting and multi-account support. Built on top of
+    twscrape (vladkens) and inspired by snscrape (JustAnotherArchivist).
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 3.6.0)
+Imports:
+    reticulate (>= 1.20),
+    cli (>= 3.0.0),
+    rlang (>= 1.0.0)
+Suggests:
+    dplyr,
+    purrr,
+    tibble,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+RoxygenNote: 7.3.2
+VignetteBuilder: knitr
+URL: https://github.com/agusnieto77/twscrapeR
+BugReports: https://github.com/agusnieto77/twscrapeR/issues
