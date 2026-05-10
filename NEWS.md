@@ -1,5 +1,24 @@
 # twscrapeR NEWS
 
+## twscrapeR 0.1.2
+
+Quality and maintenance release after validating `v0.1.1` live scraping.
+
+### Added
+
+- Added dry `testthat` coverage for environment credential helpers, Python string escaping, tweet ID extraction, and batch retweeters conversion.
+- Added GitHub Actions CI to run dry R tests on push and pull request without requiring secrets or live X/Twitter access.
+- Added `NEWS.md` and `docs/RELEASE.md` so release history and the `.9000` development workflow are explicit.
+
+### Fixed
+
+- Startup messages now show the installed package version instead of a hardcoded version.
+- Python string escaping no longer over-escapes newline and carriage-return characters.
+
+### Maintenance
+
+- Kept the XClientTransaction monkeypatch tracker open because upstream `twscrape` fixes are still unreleased.
+
 ## twscrapeR 0.1.1
 
 Maintenance release focused on making live scraping work reliably after changes in X/Twitter's web bundles.
