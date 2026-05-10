@@ -25,7 +25,7 @@ add_account <- function(username, password, email, email_password, cookies, db_f
   cli::cli_alert_info("Usuario: @{username}")
 
   # Preparar cookies
-  cookies_str <- sprintf(", cookies='%s'", cookies)
+  cookies_str <- sprintf(", cookies=%s", .python_string_literal(cookies))
 
   # Ejecutar Python - primero inicializar DB si es necesario
   result <- tryCatch({
@@ -36,7 +36,7 @@ import sqlite3
 
 async def add_account():
     # Inicializar la base de datos si no existe
-    db_path = '%s'
+    db_path = %s
 
     # Crear la conexión para asegurar que la DB existe
     conn = sqlite3.connect(db_path)
@@ -46,17 +46,24 @@ async def add_account():
 
     try:
         await api.pool.add_account(
-            '%s',
-            '%s',
-            '%s',
-            '%s'%s
+            %s,
+            %s,
+            %s,
+            %s%s
         )
         return {'success': True, 'message': 'Cuenta agregada'}
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
 _add_account_result = asyncio.run(add_account())
-    ", db_file, username, password, email, email_password, cookies_str))
+    ",
+      .python_string_literal(db_file),
+      .python_string_literal(username),
+      .python_string_literal(password),
+      .python_string_literal(email),
+      .python_string_literal(email_password),
+      cookies_str
+    ))
 
     py_result$`_add_account_result`
   }, error = function(e) {
@@ -71,15 +78,15 @@ import asyncio
 from twscrape import API
 
 async def check_account():
-    api = API('%s')
+    api = API(%s)
     accounts = await api.pool.get_all()
-    target = [acc for acc in accounts if acc.username == '%s']
+    target = [acc for acc in accounts if acc.username == %s]
     if target:
         return {'active': target[0].active}
     return {'active': False}
 
 _check_result = asyncio.run(check_account())
-      ", db_file, username))
+      ", .python_string_literal(db_file), .python_string_literal(username)))
       py_check$`_check_result`
     }, error = function(e) {
       list(active = FALSE)
@@ -116,6 +123,94 @@ _check_result = asyncio.run(check_account())
     }
     return(invisible(FALSE))
   }
+}
+
+#' @title Agregar Cuenta desde Variables de Entorno
+#' @description Lee credenciales desde `.Renviron` o variables de entorno y agrega la cuenta sin exponer secretos en el código.
+#' @param prefix Prefijo de las variables de entorno (default: "TWS_")
+#' @param db_file Archivo de base de datos (default: "accounts.db")
+#' @return `TRUE` si la cuenta se agregó y activó; `FALSE` si se agregó pero no quedó activa o hubo error
+#' @export
+#' @examples
+#' \dontrun{
+#' # En .Renviron:
+#' # TWS_USERNAME='mi_usuario'
+#' # TWS_PASSWORD='mi_password'
+#' # TWS_EMAIL='mi@email.com'
+#' # TWS_EMAIL_PASSWORD='email_pass'
+#' # TWS_AUTH_TOKEN='auth_token_del_navegador'
+#' # TWS_CT0='ct0_del_navegador'
+#'
+#' add_account_from_env()
+#'
+#' # Para una segunda cuenta, usa otro prefijo:
+#' # TWS2_USERNAME='otra_cuenta'
+#' # TWS2_PASSWORD='otra_password'
+#' # ...
+#' add_account_from_env(prefix = "TWS2_")
+#' }
+add_account_from_env <- function(prefix = "TWS_", db_file = "accounts.db") {
+  required_vars <- paste0(prefix, c("USERNAME", "PASSWORD", "EMAIL", "EMAIL_PASSWORD"))
+  values <- .get_required_env(required_vars)
+
+  cookies <- Sys.getenv(paste0(prefix, "COOKIES"), unset = NA_character_)
+  has_cookies <- !is.na(cookies) && nzchar(cookies)
+
+  if (!has_cookies) {
+    auth_token_var <- paste0(prefix, "AUTH_TOKEN")
+    ct0_var <- paste0(prefix, "CT0")
+    token_values <- Sys.getenv(c(auth_token_var, ct0_var), unset = NA_character_)
+
+    missing_cookie_vars <- names(token_values)[is.na(token_values) | !nzchar(token_values)]
+
+    if (length(missing_cookie_vars) > 0) {
+      stop(
+        "Faltan cookies. Configura ", paste0(prefix, "COOKIES"),
+        " o las variables: ", paste(c(auth_token_var, ct0_var), collapse = ", "),
+        call. = FALSE
+      )
+    }
+
+    cookies <- paste0("auth_token=", token_values[[auth_token_var]], "; ct0=", token_values[[ct0_var]])
+  }
+
+  cli::cli_alert_info("Leyendo credenciales desde variables de entorno con prefijo {prefix}")
+
+  add_account(
+    username = values[[paste0(prefix, "USERNAME")]],
+    password = values[[paste0(prefix, "PASSWORD")]],
+    email = values[[paste0(prefix, "EMAIL")]],
+    email_password = values[[paste0(prefix, "EMAIL_PASSWORD")]],
+    cookies = cookies,
+    db_file = db_file
+  )
+}
+
+.get_required_env <- function(vars) {
+  values <- Sys.getenv(vars, unset = NA_character_)
+  missing_vars <- vars[is.na(values) | !nzchar(values)]
+
+  if (length(missing_vars) > 0) {
+    stop(
+      "Faltan variables de entorno requeridas: ", paste(missing_vars, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  as.list(stats::setNames(values, vars))
+}
+
+.python_string_literal <- function(x) {
+  if (length(x) != 1 || is.na(x)) {
+    stop("Se esperaba un string no vacío para construir el literal de Python.", call. = FALSE)
+  }
+
+  x <- as.character(x)
+  x <- gsub("\\\\", "\\\\\\\\", x)
+  x <- gsub("'", "\\\\'", x)
+  x <- gsub("\n", "\\\\n", x, fixed = TRUE)
+  x <- gsub("\r", "\\\\r", x, fixed = TRUE)
+  paste0("'", x, "'")
 }
 
 #' @title Listar Cuentas

@@ -12,7 +12,7 @@
 - [Instalación](#-instalación)
 - [Inicio Rápido](#-inicio-rápido-3-pasos)
 - [Funciones Principales](#-funciones-principales)
-- [Referencia Completa de Funciones](#-referencia-completa-de-funciones) ⭐ 25 funciones
+- [Referencia Completa de Funciones](#-referencia-completa-de-funciones) ⭐ 26 funciones
 - [Análisis de Datos](#-análisis-de-datos)
 - [Solución de Problemas](#-solución-de-problemas)
 - [Estructura de Datos](#-estructura-de-datos)
@@ -25,7 +25,7 @@
 - ✅ **100% Funcional**: Usa la librería Python `twscrape` que funciona perfectamente
 - ✅ **Interfaz R Nativa**: Parece R puro, no necesitas saber Python
 - ✅ **Multi-cuenta**: Soporta múltiples cuentas con rate limiting automático
-- ✅ **25 Funciones**: Funcionalidad completa y simplificada para scraping de Twitter/X
+- ✅ **26 Funciones**: Funcionalidad completa y simplificada para scraping de Twitter/X
 - ✅ **Análisis de Redes**: Followers, following, retweeters, verified followers
 - ✅ **Análisis de Conversaciones**: Tweet details, replies, menciones
 - ✅ **Conversión Fácil**: to_dataframe() convierte tweets y usuarios a dataframes para análisis en R
@@ -59,8 +59,26 @@ La función `setup_twscraper()` te guiará a través de:
 
 ### Paso 2: Agregar Cuenta
 
+Opción recomendada: guardá tus credenciales en `.Renviron` y agregá la cuenta sin escribir secretos en el script.
+
 ```r
-# Agregar cuenta - se activa automáticamente con cookies
+# En .Renviron
+TWS_USERNAME='tu_usuario'
+TWS_PASSWORD='tu_password'
+TWS_EMAIL='tu@email.com'
+TWS_EMAIL_PASSWORD='email_pass'
+TWS_AUTH_TOKEN='valor_auth_token'
+TWS_CT0='valor_ct0'
+
+# En R
+add_account_from_env()
+```
+
+Para varias cuentas podés repetir el esquema con otro prefijo y pasarlo a la función, por ejemplo `TWS2_USERNAME`, `TWS2_PASSWORD`, etc. y luego `add_account_from_env(prefix = "TWS2_")`.
+
+También podés pasar todo explícitamente:
+
+```r
 add_account(
   username = "tu_usuario",
   password = "tu_password",
@@ -167,13 +185,16 @@ recent_first <- sort_tweets(tweets, by = "date", decreasing = TRUE)
 
 ## 📚 Referencia Completa de Funciones
 
-### 1. Configuración y Cuentas (4 funciones)
+### 1. Configuración y Cuentas (5 funciones)
 
 ```r
 # Configuración inicial del sistema
 setup_twscraper()
 
 # Agregar cuenta - se activa automáticamente con cookies
+add_account_from_env()
+
+# O pasar los datos explícitamente
 add_account(
   username = "usuario",
   password = "pass",

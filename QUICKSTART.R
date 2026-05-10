@@ -28,6 +28,16 @@ setup_twscraper()
 # 2. Presiona F12 → "Application" → "Cookies" → "https://x.com"
 # 3. Copia auth_token y ct0
 
+# Opción recomendada: guardar en .Renviron
+# TWS_USERNAME='tu_usuario'
+# TWS_PASSWORD='tu_password'
+# TWS_EMAIL='tu@email.com'
+# TWS_EMAIL_PASSWORD='email_password'
+# TWS_AUTH_TOKEN='VALOR1'
+# TWS_CT0='VALOR2'
+add_account_from_env()
+
+# Opción explícita:
 add_account(
   username = "tu_usuario",
   password = "tu_password",

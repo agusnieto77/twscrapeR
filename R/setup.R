@@ -244,7 +244,7 @@ setup_twscraper <- function(python_path = NULL, install_python = TRUE, ask = TRU
   cli::cli_text("")
   cli::cli_text("{.strong Próximos pasos:}")
   cli::cli_ol(c(
-    "Agregar cuenta: add_account('usuario', 'password', 'email', cookies='...')",
+    "Agregar cuenta: add_account_from_env() o add_account('usuario', 'password', 'email', 'email_pass', cookies='...')",
     "Buscar tweets: search_tweets('query', n = 100)",
     "Ver ayuda: ?twscrapeR"
   ))
