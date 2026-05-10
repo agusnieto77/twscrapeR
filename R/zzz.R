@@ -4,7 +4,7 @@
   options(cli.ignore_unknown_rstudio_theme = TRUE)
 
   # Mensaje de bienvenida
-  packageStartupMessage("twscrapeR v0.1.0 - Twitter/X Scraping via Python")
+  packageStartupMessage("twscrapeR v", utils::packageVersion(pkgname), " - Twitter/X Scraping via Python")
   packageStartupMessage("Use setup_twscraper() para comenzar")
 }
 
