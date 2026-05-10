@@ -222,6 +222,7 @@ setup_twscraper <- function(python_path = NULL, install_python = TRUE, ask = TRU
   # Guardar configuración en entorno global
   .twscraper_env$python_path <- python_path
   .twscraper_env$twscrape <- reticulate::import("twscrape")
+  .twscraper_env$xclid_patch <- .patch_twscrape_xclid()
   .twscraper_env$configured <- TRUE
 
   cli::cli_alert_success("Configuración completada")
@@ -236,7 +237,8 @@ setup_twscraper <- function(python_path = NULL, install_python = TRUE, ask = TRU
   cli::cli_dl(c(
     "Python" = python_path,
     "Versión Python" = as.character(reticulate::py_config()$version),
-    "twscrape" = "Instalado y listo"
+    "twscrape" = "Instalado y listo",
+    "Compatibilidad X" = if (.twscraper_env$xclid_patch) "Aplicada" else "No aplicada"
   ))
   cli::cli_text("")
 
@@ -266,7 +268,8 @@ check_setup <- function() {
   cli::cli_alert_success("twscrapeR está configurado correctamente")
   cli::cli_dl(c(
     "Python" = .twscraper_env$python_path,
-    "twscrape" = "Activo"
+    "twscrape" = "Activo",
+    "Compatibilidad X" = if (isTRUE(.twscraper_env$xclid_patch)) "Aplicada" else "No aplicada"
   ))
   return(TRUE)
 }
@@ -277,6 +280,7 @@ check_setup <- function() {
 .twscraper_env$configured <- FALSE
 .twscraper_env$python_path <- NULL
 .twscraper_env$twscrape <- NULL
+.twscraper_env$xclid_patch <- FALSE
 
 #' @title Asegurar que twscrapeR está configurado
 #' @description Uso interno - verifica configuración antes de operaciones
@@ -291,4 +295,49 @@ ensure_configured <- function() {
   if (!.twscraper_env$configured) {
     stop("No se pudo configurar twscrapeR. Ejecuta setup_twscraper() manualmente.")
   }
+
+  if (!isTRUE(.twscraper_env$xclid_patch)) {
+    .twscraper_env$xclid_patch <- .patch_twscrape_xclid()
+  }
+}
+
+#' @title Aplicar compatibilidad para X Client Transaction ID
+#' @description Uso interno - adapta el parser de twscrape a cambios recientes del bundle web de X/Twitter.
+#' @keywords internal
+.patch_twscrape_xclid <- function() {
+  patch_code <- paste(c(
+    "import json, re",
+    "import twscrape.xclid as xclid",
+    "import twscrape.queue_client as queue_client",
+    "",
+    "def _twscrapeR_js_obj_to_dict(s):",
+    "    s = re.sub(r'\\b(\\d+e\\d+)(?=\\s*:)', lambda m: '\"' + str(int(float(m.group(1)))) + '\"', s)",
+    "    s = re.sub(r'\\b(\\d+)(?=\\s*:)', r'\"\\1\"', s)",
+    "    return json.loads('{' + s + '}')",
+    "",
+    "def _twscrapeR_get_scripts_list(text):",
+    "    try:",
+    "        marker = '.u=e=>\"\"+(({'",
+    "        start = text.index(marker) + len(marker)",
+    "        name_raw = text[start:].split('})[e]||e)')[0]",
+    "        hash_raw = text.split('|e)+\".\"+({', 1)[1].split('})[e]+\"a.js\"', 1)[0]",
+    "        names = _twscrapeR_js_obj_to_dict(name_raw)",
+    "        hashes = _twscrapeR_js_obj_to_dict(hash_raw)",
+    "        for k, hash_val in hashes.items():",
+    "            name = names.get(k, k)",
+    "            yield xclid.script_url(name, f'{hash_val}a')",
+    "    except Exception as e:",
+    "        raise Exception('twscrapeR failed to parse X script map') from e",
+    "",
+    "xclid.get_scripts_list = _twscrapeR_get_scripts_list",
+    "queue_client.XClIdGenStore.items.clear()"
+  ), collapse = "\n")
+
+  tryCatch({
+    reticulate::py_run_string(patch_code)
+    TRUE
+  }, error = function(e) {
+    cli::cli_alert_warning("No se pudo aplicar compatibilidad XClientTransaction: {e$message}")
+    FALSE
+  })
 }

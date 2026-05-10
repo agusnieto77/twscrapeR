@@ -454,6 +454,12 @@ list_accounts()
 
 No hay un número universal que evite siempre el bloqueo: depende de la cola (`Search`, `Followers`, `UserTweets`, etc.), de la edad/estado de las cuentas y de la carga reciente. La regla práctica es pedir lotes más chicos y dejar que la rotación haga su trabajo.
 
+### Error `IndexError: list index out of range` en twscrape
+
+X/Twitter cambia con frecuencia sus bundles web. En `twscrape 0.17.0` eso puede romper el cálculo interno de `x-client-transaction-id` y bloquear consultas reales aunque la cuenta figure activa.
+
+`setup_twscraper()` aplica automáticamente una capa de compatibilidad para el parser de `twscrape`. Si `check_setup()` muestra `Compatibilidad X: Aplicada`, las búsquedas deberían poder ejecutarse con las cookies válidas.
+
 ## 📚 Estructura de Datos
 
 ### Tweet Object
