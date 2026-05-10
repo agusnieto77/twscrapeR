@@ -1,0 +1,36 @@
+name: R tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dry-tests:
+    name: testthat dry tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install package dependencies
+        uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::testthat
+          needs: tests
+
+      - name: Run dry tests
+        env:
+          NOT_CRAN: true
+        run: |
+          Rscript -e 'for (f in list.files("R", pattern = "[.]R$", full.names = TRUE)) source(f); testthat::test_dir("tests/testthat", reporter = "summary")'
