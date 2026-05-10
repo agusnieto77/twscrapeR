@@ -12,7 +12,7 @@
 - [Instalación](#-instalación)
 - [Inicio Rápido](#-inicio-rápido-3-pasos)
 - [Funciones Principales](#-funciones-principales)
-- [Referencia Completa de Funciones](#-referencia-completa-de-funciones) ⭐ 24 funciones
+- [Referencia Completa de Funciones](#-referencia-completa-de-funciones) ⭐ 25 funciones
 - [Análisis de Datos](#-análisis-de-datos)
 - [Solución de Problemas](#-solución-de-problemas)
 - [Estructura de Datos](#-estructura-de-datos)
@@ -25,7 +25,7 @@
 - ✅ **100% Funcional**: Usa la librería Python `twscrape` que funciona perfectamente
 - ✅ **Interfaz R Nativa**: Parece R puro, no necesitas saber Python
 - ✅ **Multi-cuenta**: Soporta múltiples cuentas con rate limiting automático
-- ✅ **24 Funciones**: Funcionalidad completa y simplificada para scraping de Twitter/X
+- ✅ **25 Funciones**: Funcionalidad completa y simplificada para scraping de Twitter/X
 - ✅ **Análisis de Redes**: Followers, following, retweeters, verified followers
 - ✅ **Análisis de Conversaciones**: Tweet details, replies, menciones
 - ✅ **Conversión Fácil**: to_dataframe() convierte tweets y usuarios a dataframes para análisis en R
@@ -229,7 +229,7 @@ print(user$following_count)
 print(user$description)
 ```
 
-### 5. Análisis de Tweets Específicos (3 funciones)
+### 5. Análisis de Tweets Específicos (4 funciones)
 
 ```r
 # Obtener detalles completos de un tweet
@@ -241,6 +241,14 @@ replies <- tweet_replies(tweet_id, n = 50)
 
 # Obtener quién retuiteó un tweet
 retweeters <- get_retweeters(tweet_id, n = 100)
+
+# Obtener retweeters para varios tweets
+tweets <- search_tweets("rstats", n = 10)
+retweeters <- get_retweeters_batch(tweets, n = 50)
+retweeters_df <- to_dataframe(retweeters)  # incluye source_tweet_id
+
+# Si querés mantenerlos agrupados por tweet
+retweeters_by_tweet <- get_retweeters_batch(tweets, n = 50, flatten = FALSE)
 ```
 
 ### 6. Análisis de Redes (3 funciones)
@@ -399,11 +407,31 @@ add_account(
 
 ### Rate Limiting
 
-Twitter tiene límites de requests. Si alcanzas el límite:
+Twitter/X aplica límites por tipo de consulta y `twscrape` los administra por cola. Si ves un mensaje como este:
 
-1. **Agrega más cuentas**: El paquete rota entre cuentas automáticamente
-2. **Espera**: Los límites se resetean cada 15 minutos
-3. **Usa parámetro `n` menor**: No pidas todos los tweets de una vez
+```text
+No account available for queue "Followers". Next available at 20:25:08
+```
+
+significa que todas las cuentas disponibles para esa cola llegaron temporalmente a su límite. No es un error de R: hay que esperar o distribuir mejor la carga.
+
+Qué hacer:
+
+1. **Bajá `n`**: empezá con valores chicos (`n = 50` o `n = 100`) y subí de a poco.
+2. **Agregá más cuentas válidas**: `twscrape` rota automáticamente entre cuentas activas.
+3. **Verificá tus cuentas**: usá `list_accounts()` y confirmá que aparezcan como `active = TRUE`.
+4. **Esperá el reset**: el propio mensaje indica cuándo vuelve a estar disponible la cola.
+
+Ejemplo con varias cuentas:
+
+```r
+add_account("usuario1", "pass1", "email1@example.com", "email_pass1", "auth_token=...; ct0=...")
+add_account("usuario2", "pass2", "email2@example.com", "email_pass2", "auth_token=...; ct0=...")
+
+list_accounts()
+```
+
+No hay un número universal que evite siempre el bloqueo: depende de la cola (`Search`, `Followers`, `UserTweets`, etc.), de la edad/estado de las cuentas y de la carga reciente. La regla práctica es pedir lotes más chicos y dejar que la rotación haga su trabajo.
 
 ## 📚 Estructura de Datos
 

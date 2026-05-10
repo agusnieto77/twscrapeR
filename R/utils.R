@@ -10,6 +10,9 @@
 #'
 #' users <- get_followers("rstudio", n = 100)
 #' df <- to_dataframe(users)
+#'
+#' retweeters <- get_retweeters_batch(tweets, n = 50)
+#' df <- to_dataframe(retweeters)  # incluye source_tweet_id
 #' }
 to_dataframe <- function(x) {
   # Check if it's a single user object (has 12 elements with class twscraper_user)
@@ -74,6 +77,15 @@ to_dataframe <- function(x) {
         profile_image_url = sapply(x, function(u) u$profile_image_url %||% NA_character_),
         stringsAsFactors = FALSE
       )
+
+      has_source_tweet_id <- any(vapply(x, function(u) !is.null(u$source_tweet_id), logical(1)))
+      if (has_source_tweet_id) {
+        df <- data.frame(
+          source_tweet_id = sapply(x, function(u) u$source_tweet_id %||% NA_character_),
+          df,
+          stringsAsFactors = FALSE
+        )
+      }
     } else {
       df <- data.frame(
         tweet_id = sapply(x, function(t) t$id %||% NA_character_),

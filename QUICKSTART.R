@@ -64,6 +64,10 @@ hadley_tweets <- user_tweets("hadleywickham", n = 100)
 user_info <- get_user("hadleywickham")
 print(user_info)
 
+# ─── Retweeters de varios tweets ───
+retweeters <- get_retweeters_batch(tweets, n = 50)
+retweeters_df <- to_dataframe(retweeters)  # incluye source_tweet_id
+
 # ─── Análisis con dplyr ───
 library(dplyr)
 
@@ -104,8 +108,9 @@ tweets <- search_tweets("rstats lang:en", n = 100)  # Solo inglés
 tweets <- search_tweets("from:rstudio", n = 50)     # De un usuario
 tweets <- search_tweets("rstats -python", n = 100)  # Excluir palabra
 
-# 4. Si tienes problemas de rate limit, agrega más cuentas
+# 4. Si tienes problemas de rate limit, baja n y agrega más cuentas activas
 add_account(username2, password2, email2, email_pass2, cookies2)
+list_accounts()
 
 # 5. Para análisis masivos, usa múltiples búsquedas
 queries <- c("rstats", "python", "datascience", "machinelearning")

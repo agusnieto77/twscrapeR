@@ -321,6 +321,122 @@ _retweeters_result = asyncio.run(get_tweet_retweeters())
   return(retweeters_list)
 }
 
+#' @title Obtener Retweeters para Varios Tweets
+#' @description Obtiene usuarios que retuitearon varios tweets en una sola llamada de R.
+#' @param tweets Vector de IDs, lista de tweets `twscraper_tweets`, tweet individual o data.frame con columna `id`/`tweet_id`.
+#' @param n Número máximo de usuarios por tweet (default: 100)
+#' @param progress Mostrar progreso (default: TRUE)
+#' @param flatten Si es TRUE, devuelve una lista plana de usuarios con columna `source_tweet_id` para usar con `to_dataframe()`. Si es FALSE, devuelve una lista agrupada por tweet.
+#' @return Lista de usuarios con `source_tweet_id` o lista agrupada por tweet
+#' @export
+#' @examples
+#' \dontrun{
+#' tweets <- search_tweets("rstats", n = 10)
+#' retweeters <- get_retweeters_batch(tweets, n = 50)
+#' retweeters_df <- to_dataframe(retweeters)
+#'
+#' retweeters_by_tweet <- get_retweeters_batch(tweets, n = 50, flatten = FALSE)
+#' }
+get_retweeters_batch <- function(tweets, n = 100, progress = TRUE, flatten = TRUE) {
+  ensure_configured()
+
+  tweet_ids <- .extract_tweet_ids(tweets)
+  tweet_ids <- tweet_ids[!is.na(tweet_ids) & nzchar(tweet_ids)]
+
+  if (length(tweet_ids) == 0) {
+    stop("No se encontraron IDs de tweets. Usa un vector de IDs, tweets de twscrapeR o un data.frame con columna 'id'/'tweet_id'.")
+  }
+
+  tweet_ids <- unique(tweet_ids)
+
+  if (progress) {
+    cli::cli_alert_info("Obteniendo retweeters para {length(tweet_ids)} tweets")
+  }
+
+  retweeters_by_tweet <- stats::setNames(vector("list", length(tweet_ids)), tweet_ids)
+
+  for (i in seq_along(tweet_ids)) {
+    tweet_id <- tweet_ids[[i]]
+
+    if (progress) {
+      cli::cli_alert_info("Procesando tweet {i}/{length(tweet_ids)}: {tweet_id}")
+    }
+
+    users <- get_retweeters(tweet_id, n = n, progress = FALSE)
+    users <- lapply(users, function(user) {
+      user$source_tweet_id <- tweet_id
+      user
+    })
+    class(users) <- c("twscraper_users", "list")
+
+    retweeters_by_tweet[[tweet_id]] <- users
+  }
+
+  if (flatten) {
+    retweeters <- unlist(retweeters_by_tweet, recursive = FALSE, use.names = FALSE)
+    class(retweeters) <- c("twscraper_users", "list")
+
+    if (progress) {
+      cli::cli_alert_success("Encontrados {length(retweeters)} retweeters en total")
+    }
+
+    return(retweeters)
+  }
+
+  class(retweeters_by_tweet) <- c("twscraper_retweeters_batch", "list")
+
+  if (progress) {
+    total <- sum(vapply(retweeters_by_tweet, length, integer(1)))
+    cli::cli_alert_success("Encontrados {total} retweeters en total")
+  }
+
+  return(retweeters_by_tweet)
+}
+
+.extract_tweet_ids <- function(tweets) {
+  if (is.null(tweets)) {
+    return(character())
+  }
+
+  if (inherits(tweets, "twscraper_tweet")) {
+    return(as.character(tweets$id))
+  }
+
+  if (is.data.frame(tweets)) {
+    if ("tweet_id" %in% names(tweets)) {
+      return(as.character(tweets$tweet_id))
+    }
+
+    if ("id" %in% names(tweets)) {
+      return(as.character(tweets$id))
+    }
+
+    stop("El data.frame debe tener una columna 'tweet_id' o 'id'.")
+  }
+
+  if (is.atomic(tweets)) {
+    return(as.character(tweets))
+  }
+
+  if (is.list(tweets)) {
+    ids <- vapply(tweets, function(tweet) {
+      if (is.list(tweet) && !is.null(tweet$id)) {
+        return(as.character(tweet$id))
+      }
+
+      if (is.atomic(tweet) && length(tweet) == 1) {
+        return(as.character(tweet))
+      }
+
+      NA_character_
+    }, character(1))
+
+    return(ids[!is.na(ids)])
+  }
+
+  stop("Formato de tweets no soportado. Usa IDs, objetos twscrapeR o un data.frame con 'id'/'tweet_id'.")
+}
+
 #' @title Obtener Tweets y Respuestas de un Usuario
 #' @description Obtiene tweets y respuestas de un usuario (timeline completo)
 #' @param username Nombre de usuario (sin @)

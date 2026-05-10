@@ -22,5 +22,8 @@ df <- to_dataframe(tweets)
 
 users <- get_followers("rstudio", n = 100)
 df <- to_dataframe(users)
+
+retweeters <- get_retweeters_batch(tweets, n = 50)
+df <- to_dataframe(retweeters)  # incluye source_tweet_id
 }
 }

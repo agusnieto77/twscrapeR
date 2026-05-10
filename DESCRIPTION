@@ -1,8 +1,8 @@
 Package: twscrapeR
 Type: Package
 Title: Twitter/X Scraping via Python's twscrape Library
-Version: 0.1.0
-Date: 2025-10-26
+Version: 0.1.0.9000
+Date: 2026-05-10
 Authors@R: c(
     person("Agustin", "Nieto", email = "agustin.nieto77@gmail.com", role = c("aut", "cre")),
     person("Claude", "AI", role = "ctb", comment = "Package development assistance")
