@@ -150,40 +150,57 @@ _check_result = asyncio.run(check_account())
 #' add_account_from_env(prefix = "TWS2_")
 #' }
 add_account_from_env <- function(prefix = "TWS_", db_file = "accounts.db") {
-  required_vars <- paste0(prefix, c("USERNAME", "PASSWORD", "EMAIL", "EMAIL_PASSWORD"))
-  values <- .get_required_env(required_vars)
-
-  cookies <- Sys.getenv(paste0(prefix, "COOKIES"), unset = NA_character_)
-  has_cookies <- !is.na(cookies) && nzchar(cookies)
-
-  if (!has_cookies) {
-    auth_token_var <- paste0(prefix, "AUTH_TOKEN")
-    ct0_var <- paste0(prefix, "CT0")
-    token_values <- Sys.getenv(c(auth_token_var, ct0_var), unset = NA_character_)
-
-    missing_cookie_vars <- names(token_values)[is.na(token_values) | !nzchar(token_values)]
-
-    if (length(missing_cookie_vars) > 0) {
-      stop(
-        "Faltan cookies. Configura ", paste0(prefix, "COOKIES"),
-        " o las variables: ", paste(c(auth_token_var, ct0_var), collapse = ", "),
-        call. = FALSE
-      )
-    }
-
-    cookies <- paste0("auth_token=", token_values[[auth_token_var]], "; ct0=", token_values[[ct0_var]])
-  }
+  account <- .account_env_values(prefix)
 
   cli::cli_alert_info("Leyendo credenciales desde variables de entorno con prefijo {prefix}")
 
   add_account(
+    username = account$username,
+    password = account$password,
+    email = account$email,
+    email_password = account$email_password,
+    cookies = account$cookies,
+    db_file = db_file
+  )
+}
+
+.account_env_values <- function(prefix = "TWS_") {
+  required_vars <- paste0(prefix, c("USERNAME", "PASSWORD", "EMAIL", "EMAIL_PASSWORD"))
+  values <- .get_required_env(required_vars)
+
+  list(
     username = values[[paste0(prefix, "USERNAME")]],
     password = values[[paste0(prefix, "PASSWORD")]],
     email = values[[paste0(prefix, "EMAIL")]],
     email_password = values[[paste0(prefix, "EMAIL_PASSWORD")]],
-    cookies = cookies,
-    db_file = db_file
+    cookies = .cookies_from_env(prefix)
   )
+}
+
+.cookies_from_env <- function(prefix = "TWS_") {
+  cookies_var <- paste0(prefix, "COOKIES")
+  cookies <- Sys.getenv(cookies_var, unset = NA_character_)
+  has_cookies <- !is.na(cookies) && nzchar(cookies)
+
+  if (has_cookies) {
+    return(cookies)
+  }
+
+  auth_token_var <- paste0(prefix, "AUTH_TOKEN")
+  ct0_var <- paste0(prefix, "CT0")
+  token_values <- Sys.getenv(c(auth_token_var, ct0_var), unset = NA_character_)
+
+  missing_cookie_vars <- names(token_values)[is.na(token_values) | !nzchar(token_values)]
+
+  if (length(missing_cookie_vars) > 0) {
+    stop(
+      "Faltan cookies. Configura ", cookies_var,
+      " o las variables: ", paste(c(auth_token_var, ct0_var), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  paste0("auth_token=", token_values[[auth_token_var]], "; ct0=", token_values[[ct0_var]])
 }
 
 .get_required_env <- function(vars) {
@@ -208,8 +225,8 @@ add_account_from_env <- function(prefix = "TWS_", db_file = "accounts.db") {
   x <- as.character(x)
   x <- gsub("\\\\", "\\\\\\\\", x)
   x <- gsub("'", "\\\\'", x)
-  x <- gsub("\n", "\\\\n", x, fixed = TRUE)
-  x <- gsub("\r", "\\\\r", x, fixed = TRUE)
+  x <- gsub("\n", "\\n", x, fixed = TRUE)
+  x <- gsub("\r", "\\r", x, fixed = TRUE)
   paste0("'", x, "'")
 }
 
